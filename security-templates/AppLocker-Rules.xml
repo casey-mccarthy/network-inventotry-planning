@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AppLocker Policy for Inventory Agent
+
+  This policy allows the Inventory Agent PowerShell scripts to run
+  while maintaining security through publisher and path rules.
+
+  DEPLOYMENT INSTRUCTIONS:
+  1. Import into Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Application Control Policies > AppLocker
+  2. Or import via PowerShell: Set-AppLockerPolicy -XMLPolicy "AppLocker-Rules.xml" -Merge
+  3. Ensure AppLocker service is set to "Automatic" startup
+
+  TESTING:
+  - Test in Audit mode first before enforcing
+  - Review Event Viewer: Applications and Services Logs > Microsoft > Windows > AppLocker
+
+  Version: 1.0
+  Created: 2024-10-24
+-->
+<AppLockerPolicy Version="1">
+
+  <!-- Script Rules (PowerShell, VBScript, etc.) -->
+  <RuleCollection Type="Script" EnforcementMode="AuditOnly">
+
+    <!-- Allow digitally signed Inventory Agent scripts by publisher -->
+    <FilePublisherRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="Inventory Agent - Signed Scripts (Publisher)" Description="Allow all Inventory Agent scripts signed by your organization's code signing certificate" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=YourCompany, L=YourCity, S=YourState, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+
+    <!-- Allow Inventory Agent scripts by path (less secure, use only if not signed) -->
+    <FilePathRule Id="92c3a1e9-5e3a-4c3f-8f4a-9c10e1234567" Name="Inventory Agent - Scripts by Path" Description="Allow PowerShell scripts in InventoryAgent directory" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="C:\ProgramData\InventoryAgent\*.ps1" />
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Allow PowerShell in standard Windows locations -->
+    <FilePathRule Id="06dce67b-934c-454f-a263-2515c8796a5d" Name="(Default Rule) All scripts located in the Windows folder" Description="Allows members of the Everyone group to run scripts that are located in the Windows folder." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*" />
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Allow PowerShell in Program Files -->
+    <FilePathRule Id="9428c672-5fc3-47f4-808a-a0011f36dd2c" Name="(Default Rule) All scripts located in the Program Files folder" Description="Allows members of the Everyone group to run scripts that are located in the Program Files folder." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%PROGRAMFILES%\*" />
+      </Conditions>
+    </FilePathRule>
+
+  </RuleCollection>
+
+  <!-- Executable Rules (for compiled .NET version) -->
+  <RuleCollection Type="Exe" EnforcementMode="AuditOnly">
+
+    <!-- Allow digitally signed Inventory Agent executable by publisher -->
+    <FilePublisherRule Id="b3c2a5f1-1a2b-4c3d-9e8f-7a6b5c4d3e2f" Name="Inventory Agent - Signed Executable (Publisher)" Description="Allow Inventory Agent service signed by your organization" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=YourCompany, L=YourCity, S=YourState, C=US" ProductName="Inventory Agent" BinaryName="InventoryAgent.exe">
+          <BinaryVersionRange LowSection="1.0.0.0" HighSection="*" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+
+    <!-- Allow Inventory Agent by path (less secure, use only if not signed) -->
+    <FilePathRule Id="a9fda85f-0e65-4c14-8e5f-aa4b6c3d9e7f" Name="Inventory Agent - Executable by Path" Description="Allow InventoryAgent.exe from installation directory" UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="C:\Program Files\InventoryAgent\InventoryAgent.exe" />
+      </Conditions>
+    </FilePathRule>
+
+    <!-- Default Windows executables -->
+    <FilePathRule Id="921cc481-6e17-4653-8f75-050b80acca20" Name="(Default Rule) All files located in the Windows folder" Description="Allows members of the Everyone group to run applications that are located in the Windows folder." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*" />
+      </Conditions>
+    </FilePathRule>
+
+    <FilePathRule Id="a61c8b2c-a319-4cd0-9690-d2177cad7b51" Name="(Default Rule) All files located in the Program Files folder" Description="Allows members of the Everyone group to run applications that are located in the Program Files folder." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%PROGRAMFILES%\*" />
+      </Conditions>
+    </FilePathRule>
+
+  </RuleCollection>
+
+  <!-- DLL Rules (optional, for advanced security) -->
+  <RuleCollection Type="Dll" EnforcementMode="AuditOnly">
+
+    <!-- Default DLL rules -->
+    <FilePathRule Id="86f235ad-3f7b-4121-bc95-ea8bde3a5db5" Name="(Default Rule) All DLLs located in the Windows folder" Description="Allows members of the Everyone group to load DLLs located in the Windows folder." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\*" />
+      </Conditions>
+    </FilePathRule>
+
+    <FilePathRule Id="ed97d0cb-15ff-430f-b82c-8d7832957725" Name="(Default Rule) All DLLs located in the Program Files folder" Description="Allows members of the Everyone group to load DLLs located in the Program Files folder." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%PROGRAMFILES%\*" />
+      </Conditions>
+    </FilePathRule>
+
+  </RuleCollection>
+
+  <!-- MSI Installer Rules (for deploying agent via MSI) -->
+  <RuleCollection Type="Msi" EnforcementMode="AuditOnly">
+
+    <!-- Allow signed MSI packages from your organization -->
+    <FilePublisherRule Id="d3c4b5a6-7e8f-9a0b-1c2d-3e4f5a6b7c8d" Name="Inventory Agent - Signed MSI (Publisher)" Description="Allow Inventory Agent MSI installer signed by your organization" UserOrGroupSid="S-1-5-32-544" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="O=YourCompany, L=YourCity, S=YourState, C=US" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePublisherRule>
+
+    <!-- Default MSI rules -->
+    <FilePathRule Id="5b290184-345a-4453-b184-45305f6d9a54" Name="(Default Rule) All digitally signed Windows Installer files" Description="Allows members of the Everyone group to run digitally signed Windows Installer files." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePublisherCondition PublisherName="*" ProductName="*" BinaryName="*">
+          <BinaryVersionRange LowSection="*" HighSection="*" />
+        </FilePublisherCondition>
+      </Conditions>
+    </FilePathRule>
+
+    <FilePathRule Id="64ad46ff-0d71-4fa0-a30b-3f3d30c5433d" Name="(Default Rule) All Windows Installer files in %systemdrive%\Windows\Installer" Description="Allows members of the Everyone group to run all Windows Installer files located in %systemdrive%\Windows\Installer." UserOrGroupSid="S-1-1-0" Action="Allow">
+      <Conditions>
+        <FilePathCondition Path="%WINDIR%\Installer\*" />
+      </Conditions>
+    </FilePathRule>
+
+  </RuleCollection>
+
+</AppLockerPolicy>
